@@ -1,0 +1,20 @@
+version: '3'
+services:
+  web:
+    # Path to dockerfile
+    build: .
+    # Container name
+    container_name: app-flask
+    # Set environment variables
+    environment:
+      ## For debug
+      # - FLASK_ENV=development
+      ## Allow to monitor app logs in command line
+      - PYTHONUNBUFFERED=True                   
+      ##
+    # Restart app in case of failure
+    restart: on-failure
+    # Open port into container 
+    # Port_outside : Port_inside
+    ports:
+      - "5000:5000"
