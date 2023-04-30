@@ -11,7 +11,7 @@ jobs:
 
       - name: Save env to file
         env:
-          ENV_VARS: ${{ toJson(env) }}
+          ENV_VARS: ${{ toJson(vars) }}
         run: echo "$ENV_VARS" > "variables.json"
 
       - name: Print path
