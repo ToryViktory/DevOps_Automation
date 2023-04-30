@@ -20,8 +20,8 @@ jobs:
 
       - name: Save envs to file
         env:
-          VARS: ${{ toJSON(vars) }}
-          SECRETS: ${{ toJSON(secrets) }}
+          VARS: vars
+          SECRETS: secrets
         run: |
           echo "$VARS" > "variables.json"
           echo "$SECRETS" >> "variables.json"
