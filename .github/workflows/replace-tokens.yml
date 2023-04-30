@@ -34,6 +34,6 @@ jobs:
 
       - name: Read file
         run: |
-          cat variables.yml
+          cat variables.json
           echo "**********************"
           cat docker-compose.yml
