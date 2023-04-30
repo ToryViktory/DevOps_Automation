@@ -1,7 +1,16 @@
-name: python-flusk-actions
+name: replace-tokens
 run-name: ${{ github.actor }} replace tokens
 
 on: push
+env:
+  JENKINS_LOCAL_HOME: ./jenkins_compose
+  JENKINS_UID: 1000
+  JENKINS_GID: 1000
+  HOST_DOCKER_SOCK: /var/run/docker.sock
+# Nginx Settings
+  NGINX_CONF: ./nginx.conf
+  NGINX_SSL_CERTS: ./ssl
+  NGINX_LOGS: ./logs/nginx
 
 jobs:
   build:
@@ -9,17 +18,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Save env to file
+      - name: Save envs to file
         env:
           VARS: ${{ toJSON(vars) }}
-        run: echo "$VARS" > "variables.json"
-
-      - name: Print path
-        run: pwd && ls -la
+          SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          echo "$VARS" > "variables.json"
+          echo "$SECRETS" >> "variables.json"
 
       - name: Read file
         run: cat Virtualization/Docker/CI-CD-tools/Jenkins/docker-compose.yml
 
+      - name: Replace Vars - Using env variables
+        run: envsubst < variables.json > variables.json
+
       - name: Read env
         run: cat variables.json
-
