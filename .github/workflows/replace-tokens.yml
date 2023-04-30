@@ -30,7 +30,10 @@ jobs:
         run: cat Virtualization/Docker/CI-CD-tools/Jenkins/docker-compose.yml
 
       - name: Replace Vars - Using env variables
-        run: envsubst < variables.json > variables.json
+        run: envsubst < Virtualization/Docker/CI-CD-tools/Jenkins/docker-compose.yml > docker-compose.yml
 
-      - name: Read env
-        run: cat variables.json
+      - name: Read file
+        run: |
+          cat variables.yml
+          echo "**********************"
+          cat docker-compose.yml
