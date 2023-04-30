@@ -1,0 +1,2428 @@
+{
+  "vulnerabilities": [
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [],
+      "creationTime": "2019-03-27T08:43:07.568451Z",
+      "credit": [
+        "Semmle Security Research Team"
+      ],
+      "cvssScore": 5.6,
+      "description": "## Overview\n\n[jquery](https://www.npmjs.com/package/jquery) is a JavaScript library. It makes things like HTML document traversal and manipulation, event handling, animation, and Ajax much simpler with an easy-to-use API that works across a multitude of browsers.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe `extend` function can be tricked into modifying the prototype of `Object` when the attacker controls part of the structure passed to this function. This can let an attacker add or modify an existing property that will then exist on all objects.\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `jquery` to version 3.4.0 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/jquery/jquery/commit/753d591aea698e57d6db58c9f722cd0808619b1b)\n\n- [GitHub PR](https://github.com/jquery/jquery/pull/4333)\n\n- [Hackerone Report](https://hackerone.com/reports/454365)\n\n- [Snyk Blog](https://snyk.io/blog/after-three-years-of-silence-a-new-jquery-prototype-pollution-vulnerability-emerges-once-again/)\n\n- [Third-Party Backported Patches Repo](https://github.com/DanielRuf/snyk-js-jquery-174006)\n",
+      "disclosureTime": "2019-03-26T08:40:15Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "3.4.0"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "test/core.js",
+            "functionName": "module.exports.jQuery.extend(Object, Object)"
+          },
+          "version": [
+            "<=1.8.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "src/core.js",
+            "functionName": "jQuery.extend.jQuery.fn.extend"
+          },
+          "version": [
+            ">1.8.3 <=2.2.4"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "dist/core.js",
+            "functionName": "jQuery.extend.jQuery.fn.extend"
+          },
+          "version": [
+            ">2.2.4 <=3.3.1"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "test/core.js",
+            "functionName": "module.exports.jQuery.extend(Object, Object)"
+          },
+          "version": [
+            "<=1.8.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "src/core.js",
+            "functionName": "jQuery.extend.jQuery.fn.extend"
+          },
+          "version": [
+            ">1.8.3 <=2.2.4"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "dist/core.js",
+            "functionName": "jQuery.extend.jQuery.fn.extend"
+          },
+          "version": [
+            ">2.2.4 <=3.3.1"
+          ]
+        }
+      ],
+      "id": "SNYK-JS-JQUERY-174006",
+      "identifiers": {
+        "CVE": [
+          "CVE-2019-11358",
+          "CVE-2019-5428"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          796
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-12-02T14:40:38.091569Z",
+      "moduleName": "jquery",
+      "packageManager": "npm",
+      "packageName": "jquery",
+      "patches": [],
+      "publicationTime": "2019-03-27T08:40:08Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/jquery/jquery/commit/753d591aea698e57d6db58c9f722cd0808619b1b"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/jquery/jquery/pull/4333"
+        },
+        {
+          "title": "Hackerone Report",
+          "url": "https://hackerone.com/reports/454365"
+        },
+        {
+          "title": "Snyk Blog",
+          "url": "https://snyk.io/blog/after-three-years-of-silence-a-new-jquery-prototype-pollution-vulnerability-emerges-once-again/"
+        },
+        {
+          "title": "Third-Party Backported Patches Repo",
+          "url": "https://github.com/DanielRuf/snyk-js-jquery-174006"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<3.4.0"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "jquery@1.12.4"
+      ],
+      "upgradePath": [
+        false,
+        "jquery@3.4.0"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "jquery",
+      "version": "1.12.4"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N",
+      "alternativeIds": [
+        "SNYK-JS-JQUERY-10186"
+      ],
+      "creationTime": "2016-11-06T15:12:44.538000Z",
+      "credit": [
+        "Egor Homakov"
+      ],
+      "cvssScore": 5.4,
+      "description": "## Overview\n\n[jquery](https://www.npmjs.com/package/jquery) is a JavaScript library. It makes things like HTML document traversal and manipulation, event handling, animation, and Ajax much simpler with an easy-to-use API that works across a multitude of browsers.\n\n\nAffected versions of this package are vulnerable to Cross-site Scripting (XSS)\nattacks when a cross-domain ajax request is performed without the `dataType` option causing `text/javascript` responses to be executed.\n\n## Details\n A cross-site scripting attack occurs when the attacker tricks a legitimate web-based application or site to accept a request as originating from a trusted source.\r\n\r\nThis is done by escaping the context of the web application; the web application then delivers that data to its users along with other trusted dynamic content, without validating it. The browser unknowingly executes malicious script on the client side (through client-side languages; usually JavaScript or HTML)  in order to perform actions that are otherwise typically blocked by the browser’s Same Origin Policy.\r\n\r\nֿInjecting malicious code is the most prevalent manner by which XSS is exploited; for this reason, escaping characters in order to prevent this manipulation is the top method for securing code against this vulnerability.\r\n\r\nEscaping means that the application is coded to mark key characters, and particularly key characters included in user input, to prevent those characters from being interpreted in a dangerous context. For example, in HTML, `<` can be coded as  `&lt`; and `>` can be coded as `&gt`; in order to be interpreted and displayed as themselves in text, while within the code itself, they are used for HTML tags. If malicious content is injected into an application that escapes special characters and that malicious content uses `<` and `>` as HTML tags, those characters are nonetheless not interpreted as HTML tags by the browser if they’ve been correctly escaped in the application code and in this way the attempted attack is diverted.\r\n \r\nThe most prominent use of XSS is to steal cookies (source: OWASP HttpOnly) and hijack user sessions, but XSS exploits have been used to expose sensitive information, enable access to privileged services and functionality and deliver malware. \r\n\r\n### Types of attacks\r\nThere are a few methods by which XSS can be manipulated:\r\n\r\n|Type|Origin|Description|\r\n|--|--|--|\r\n|**Stored**|Server|The malicious code is inserted in the application (usually as a link) by the attacker. The code is activated every time a user clicks the link.|\r\n|**Reflected**|Server|The attacker delivers a malicious link externally from the vulnerable web site application to a user. When clicked, malicious code is sent to the vulnerable web site, which reflects the attack back to the user’s browser.| \r\n|**DOM-based**|Client|The attacker forces the user’s browser to render a malicious page. The data in the page itself delivers the cross-site scripting data.|\r\n|**Mutated**| |The attacker injects code that appears safe, but is then rewritten and modified by the browser, while parsing the markup. An example is rebalancing unclosed quotation marks or even adding quotation marks to unquoted parameters.|\r\n\r\n### Affected environments\r\nThe following environments are susceptible to an XSS attack:\r\n\r\n* Web servers\r\n* Application servers\r\n* Web application environments\r\n\r\n### How to prevent\r\nThis section describes the top best practices designed to specifically protect your code: \r\n\r\n* Sanitize data input in an HTTP request before reflecting it back, ensuring all data is validated, filtered or escaped before echoing anything back to the user, such as the values of query parameters during searches. \r\n* Convert special characters such as `?`, `&`, `/`, `<`, `>` and spaces to their respective HTML or URL encoded equivalents. \r\n* Give users the option to disable client-side scripts.\r\n* Redirect invalid requests.\r\n* Detect simultaneous logins, including those from two separate IP addresses, and invalidate those sessions.\r\n* Use and enforce a Content Security Policy (source: Wikipedia) to disable any features that might be manipulated for an XSS attack.\r\n* Read the documentation for any of the libraries referenced in your code to understand which elements allow for embedded HTML.\n\n\n## Remediation\n\nUpgrade `jquery` to version 1.12.2, 2.2.2, 3.0.0 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/jquery/jquery/commit/f60729f3903d17917dc351f3ac87794de379b0cc)\n\n- [GitHub Commit](https://github.com/jquery/jquery/pull/2588/commits/c254d308a7d3f1eac4d0b42837804cfffcba4bb2)\n\n- [GitHub Issue](https://github.com/jquery/jquery/issues/2432)\n\n- [GitHub PR](https://github.com/jquery/jquery/pull/2588)\n",
+      "disclosureTime": "2015-06-26T21:00:00Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "1.12.2",
+        "2.2.2",
+        "3.0.0"
+      ],
+      "functions": [],
+      "functions_new": [],
+      "id": "npm:jquery:20150627",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-JQUERY-10186"
+        ],
+        "CVE": [
+          "CVE-2015-9251",
+          "CVE-2017-16012"
+        ],
+        "CWE": [
+          "CWE-79"
+        ],
+        "NSP": [
+          328
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-06-21T14:19:55.221734Z",
+      "moduleName": "jquery",
+      "packageManager": "npm",
+      "packageName": "jquery",
+      "patches": [],
+      "publicationTime": "2016-11-27T00:00:00Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/jquery/jquery/commit/f60729f3903d17917dc351f3ac87794de379b0cc"
+        },
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/jquery/jquery/pull/2588/commits/c254d308a7d3f1eac4d0b42837804cfffcba4bb2"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/jquery/jquery/issues/2432"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/jquery/jquery/pull/2588"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<1.12.2",
+          ">=1.12.3 <2.2.2",
+          ">=2.2.3 <3.0.0"
+        ]
+      },
+      "severity": "medium",
+      "title": "Cross-site Scripting (XSS)",
+      "from": [
+        "test@1.0.0",
+        "jquery@1.12.4"
+      ],
+      "upgradePath": [
+        false,
+        "jquery@2.2.2"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "jquery",
+      "version": "1.12.4"
+    },
+    {
+      "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L/E:P/RL:O/RC:C",
+      "alternativeIds": [],
+      "creationTime": "2019-06-19T12:04:21.040000Z",
+      "credit": [
+        "Snyk Security Team"
+      ],
+      "cvssScore": 7.3,
+      "description": "## Overview\n\n[lodash](https://www.npmjs.com/package/lodash) is a modern JavaScript utility library delivering modularity, performance, & extras.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe function `defaultsDeep` could be tricked into adding or modifying properties of `Object.prototype` using a `constructor` payload.\r\n\r\n## PoC by Snyk\r\n```\r\nconst mergeFn = require('lodash').defaultsDeep;\r\nconst payload = '{\"constructor\": {\"prototype\": {\"a0\": true}}}'\r\n\r\nfunction check() {\r\n    mergeFn({}, JSON.parse(payload));\r\n    if (({})[`a0`] === true) {\r\n        console.log(`Vulnerable to Prototype Pollution via ${payload}`);\r\n    }\r\n  }\r\n\r\ncheck();\r\n```\r\n\r\nFor more information, check out our [blog post](https://snyk.io/blog/snyk-research-team-discovers-severe-prototype-pollution-security-vulnerabilities-affecting-all-versions-of-lodash/)\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `lodash` to version 4.17.12 or higher.\n\n\n## References\n\n- [GitHub Issue](https://github.com/lodash/lodash/issues/4348)\n\n- [GitHub PR](https://github.com/lodash/lodash/pull/4336)\n\n- [GitHub PR](https://github.com/lodash/lodash/pull/4355)\n\n- [GitHub PR](https://github.com/sailshq/lodash/pull/1)\n\n- [Node Security Advisory](https://www.npmjs.com/advisories/1065)\n\n- [Snyk Blog](https://snyk.io/blog/snyk-research-team-discovers-severe-prototype-pollution-security-vulnerabilities-affecting-all-versions-of-lodash/)\n",
+      "disclosureTime": "2019-06-19T11:45:02Z",
+      "exploit": "Proof of Concept",
+      "fixedIn": [
+        "4.17.12"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.customDefaultsMerge"
+          },
+          "version": [
+            ">=4.17.3 <4.17.12"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.customDefaultsMerge"
+          },
+          "version": [
+            ">=4.17.3 <4.17.12"
+          ]
+        }
+      ],
+      "id": "SNYK-JS-LODASH-450202",
+      "identifiers": {
+        "CVE": [
+          "CVE-2019-10744"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          1065
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-09-09T10:38:22.752516Z",
+      "moduleName": "lodash",
+      "packageManager": "npm",
+      "packageName": "lodash",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:SNYK-JS-LODASH-450202:0",
+          "modificationTime": "2019-12-03T11:40:45.719849Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/lodash/20190702/lodash_20190702_0_0_1f8ea07746963a535385a5befc19fa687a627d2b.patch"
+          ],
+          "version": "=4.17.11"
+        }
+      ],
+      "publicationTime": "2019-07-02T11:45:01Z",
+      "references": [
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/lodash/lodash/issues/4348"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/lodash/lodash/pull/4336"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/lodash/lodash/pull/4355"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/sailshq/lodash/pull/1"
+        },
+        {
+          "title": "Node Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1065"
+        },
+        {
+          "title": "Snyk Blog",
+          "url": "https://snyk.io/blog/snyk-research-team-discovers-severe-prototype-pollution-security-vulnerabilities-affecting-all-versions-of-lodash/"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.17.12"
+        ]
+      },
+      "severity": "high",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "lodash@4.10.0"
+      ],
+      "upgradePath": [
+        false,
+        "lodash@4.17.12"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "lodash",
+      "version": "4.10.0"
+    },
+    {
+      "CVSSv3": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [],
+      "creationTime": "2019-02-03T09:06:37.726000Z",
+      "credit": [
+        "asgerf"
+      ],
+      "cvssScore": 7.3,
+      "description": "## Overview\n\n[lodash](https://www.npmjs.com/package/lodash) is a modern JavaScript utility library delivering modularity, performance, & extras.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe functions `merge`, `mergeWith`, and `defaultsDeep` could be tricked into adding or modifying properties of `Object.prototype`. This is due to an incomplete fix to `CVE-2018-3721`.\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `lodash` to version 4.17.11 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/lodash/lodash/commit/90e6199a161b6445b01454517b40ef65ebecd2ad)\n\n- [GitHub PR](https://github.com/lodash/lodash/pull/4337)\n\n- [HackerOne Report](https://hackerone.com/reports/380873)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1066)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1068)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1071)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/782)\n",
+      "disclosureTime": "2018-08-31T18:21:00Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.17.11"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=0.9.0 <1.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "dist/lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=1.0.0 <1.0.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "dist/lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=1.1.0 <2.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=2.0.0 <3.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.mergeDefaults"
+          },
+          "version": [
+            ">=4.0.0 <4.17.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.assignMergeValue"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "safeGet"
+          },
+          "version": [
+            ">=4.17.5 <4.17.11"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=0.9.0 <1.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "dist/lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=1.0.0 <1.0.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "dist/lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=1.1.0 <2.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=2.0.0 <3.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.mergeDefaults"
+          },
+          "version": [
+            ">=4.0.0 <4.17.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.assignMergeValue"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "safeGet"
+          },
+          "version": [
+            ">=4.17.5 <4.17.11"
+          ]
+        }
+      ],
+      "id": "SNYK-JS-LODASH-73638",
+      "identifiers": {
+        "CVE": [
+          "CVE-2018-16487"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          1066,
+          1068,
+          1071,
+          782
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-04-14T11:07:40.784000Z",
+      "moduleName": "lodash",
+      "packageManager": "npm",
+      "packageName": "lodash",
+      "patches": [],
+      "publicationTime": "2019-02-01T18:21:00Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/lodash/lodash/commit/90e6199a161b6445b01454517b40ef65ebecd2ad"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/lodash/lodash/pull/4337"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/380873"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1066"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1068"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1071"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/782"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.17.11"
+        ]
+      },
+      "severity": "high",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "lodash@4.10.0"
+      ],
+      "upgradePath": [
+        false,
+        "lodash@4.17.11"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "lodash",
+      "version": "4.10.0"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:H/PR:H/UI:N/S:U/C:N/I:N/A:H",
+      "alternativeIds": [],
+      "creationTime": "2019-02-03T09:18:05.060741Z",
+      "credit": [
+        "cristianstaicu"
+      ],
+      "cvssScore": 4.4,
+      "description": "## Overview\n\n[lodash](https://www.npmjs.com/package/lodash) is a modern JavaScript utility library delivering modularity, performance, & extras.\n\n\nAffected versions of this package are vulnerable to Regular Expression Denial of Service (ReDoS).\nIt parses dates using regex strings, which may cause a slowdown of 2 seconds per 50k characters.\n\n## Details\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\n\n## Remediation\n\nUpgrade `lodash` to version 4.17.11 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/lodash/lodash/commit/5c08f18d365b64063bfbfa686cbb97cdd6267347)\n\n- [GitHub Issue](https://github.com/lodash/lodash/issues/3359)\n\n- [GitHub PR](https://github.com/lodash/lodash/pull/4450)\n",
+      "disclosureTime": "2017-09-05T09:14:29Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.17.11"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "hasUnicodeWord"
+          },
+          "version": [
+            ">=4.15.0 <4.17.11"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "hasUnicodeWord"
+          },
+          "version": [
+            ">=4.15.0 <4.17.11"
+          ]
+        }
+      ],
+      "id": "SNYK-JS-LODASH-73639",
+      "identifiers": {
+        "CVE": [
+          "CVE-2019-1010266"
+        ],
+        "CWE": [
+          "CWE-185"
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-04-29T10:27:56.017582Z",
+      "moduleName": "lodash",
+      "packageManager": "npm",
+      "packageName": "lodash",
+      "patches": [],
+      "publicationTime": "2019-04-05T09:14:22Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/lodash/lodash/commit/5c08f18d365b64063bfbfa686cbb97cdd6267347"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/lodash/lodash/issues/3359"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/lodash/lodash/pull/4450"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.17.11"
+        ]
+      },
+      "severity": "medium",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "lodash@4.10.0"
+      ],
+      "upgradePath": [
+        false,
+        "lodash@4.17.11"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "lodash",
+      "version": "4.10.0"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [
+        "SNYK-JS-LODASH-174180"
+      ],
+      "creationTime": "2018-02-12T22:28:27.654000Z",
+      "credit": [
+        "Olivier Arteau (HoLyVieR)"
+      ],
+      "cvssScore": 6.3,
+      "description": "## Overview\n\n[lodash](https://www.npmjs.com/package/lodash) is a modern JavaScript utility library delivering modularity, performance, & extras.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe utilities function allow modification of the `Object` prototype. If an attacker can control part of the structure passed to this function, they could add or modify an existing property.  \r\n\r\n## PoC by Olivier Arteau (HoLyVieR)\r\n```js\r\nvar _= require('lodash');\r\nvar malicious_payload = '{\"__proto__\":{\"oops\":\"It works !\"}}';\r\n\r\nvar a = {};\r\nconsole.log(\"Before : \" + a.oops);\r\n_.merge({}, JSON.parse(malicious_payload));\r\nconsole.log(\"After : \" + a.oops);\r\n```\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `lodash` to version 4.17.5 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/lodash/lodash/commit/d8e069cc3410082e44eb18fcf8e7f3d08ebe1d4a)\n\n- [GitHub PR](https://github.com/lodash/lodash/pull/4337)\n\n- [HackerOne Report](https://hackerone.com/reports/310443)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1067)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1069)\n\n- [NPM Security Advisory](https://www.npmjs.com/advisories/1070)\n",
+      "disclosureTime": "2018-01-30T22:28:27Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.17.5"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "dist/lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">= 1.0.0 <1.0.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=0.9.0 <1.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "dist/lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=1.1.0 <2.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=2.0.0 <3.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "dist/lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">= 1.0.0 <1.0.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "merge"
+          },
+          "version": [
+            ">=0.9.0 <1.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "dist/lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=1.1.0 <2.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.merge"
+          },
+          "version": [
+            ">=2.0.0 <3.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "index.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=3.0.0 <4.0.0"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMerge"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lodash.js",
+            "functionName": "runInContext.baseMergeDeep"
+          },
+          "version": [
+            ">=4.0.0 <4.17.5"
+          ]
+        }
+      ],
+      "id": "npm:lodash:20180130",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-LODASH-174180"
+        ],
+        "CVE": [
+          "CVE-2018-3721"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          1067,
+          1069,
+          1070,
+          577
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-04-14T11:09:00.957000Z",
+      "moduleName": "lodash",
+      "packageManager": "npm",
+      "packageName": "lodash",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:lodash:20180130:0",
+          "modificationTime": "2019-12-03T11:40:45.883000Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/lodash/20180130/20180130_0_0_lodash_d8e069cc3410082e44eb18fcf8e7f3d08ebe1d4a.patch"
+          ],
+          "version": "=3.10.1"
+        }
+      ],
+      "publicationTime": "2018-02-14T13:22:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/lodash/lodash/commit/d8e069cc3410082e44eb18fcf8e7f3d08ebe1d4a"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/lodash/lodash/pull/4337"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/310443"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1067"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1069"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "https://www.npmjs.com/advisories/1070"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.17.5"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "lodash@4.10.0"
+      ],
+      "upgradePath": [
+        false,
+        "lodash@4.17.5"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "lodash",
+      "version": "4.10.0"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [
+        "SNYK-JS-HOEK-12061"
+      ],
+      "creationTime": "2018-02-12T22:28:27.612000Z",
+      "credit": [
+        "Olivier Arteau (HoLyVieR)"
+      ],
+      "cvssScore": 6.3,
+      "description": "## Overview\n\n[hoek](https://github.com/hapijs/hoek) is a Utility methods for the hapi ecosystem.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe utilities function allow modification of the `Object` prototype. If an attacker can control part of the structure passed to this function, they could add or modify an existing property.  \r\n\r\n## PoC by Olivier Arteau (HoLyVieR)\r\n```js\r\nvar Hoek = require('hoek');\r\nvar malicious_payload = '{\"__proto__\":{\"oops\":\"It works !\"}}';\r\n\r\nvar a = {};\r\nconsole.log(\"Before : \" + a.oops);\r\nHoek.merge({}, JSON.parse(malicious_payload));\r\nconsole.log(\"After : \" + a.oops);\r\n\r\n```\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `hoek` to version 4.2.1, 5.0.3 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee)\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df)\n\n- [GitHub Issue](https://github.com/hapijs/hoek/issues/230)\n\n- [GitHub PR](https://github.com/hapijs/hoek/pull/227)\n\n- [HackerOne Report](https://hackerone.com/reports/310439)\n\n- [NPM Security Advisory](http://npmjs.com/advisories/566)\n",
+      "disclosureTime": "2018-02-12T22:28:27Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.2.1",
+        "5.0.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "id": "npm:hoek:20180212",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-HOEK-12061"
+        ],
+        "CVE": [
+          "CVE-2018-3728"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          566
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-05-21T07:48:56.121075Z",
+      "moduleName": "hoek",
+      "packageManager": "npm",
+      "packageName": "hoek",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:0",
+          "modificationTime": "2019-12-03T11:40:45.879582Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_0_hoek_5aed1a8c4a3d55722d1c799f2368857bf418d6df.patch"
+          ],
+          "version": "<4.2.1 >=4.1.0 || <3.0.4 >=3.0.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:1",
+          "modificationTime": "2019-12-03T11:40:45.880722Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_1_hoek_32ed5c9413321fbc37da5ca81a7cbab693786dee.patch"
+          ],
+          "version": ">=2.0.0 <3.0.0"
+        }
+      ],
+      "publicationTime": "2018-02-14T13:22:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee"
+        },
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/hapijs/hoek/issues/230"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/hapijs/hoek/pull/227"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/310439"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "http://npmjs.com/advisories/566"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.2.1",
+          ">=5.0.0 <5.0.3"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "hawk@3.1.3",
+        "hoek@2.16.3"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.82.0",
+        "hawk@6.0.2",
+        "hoek@4.2.1"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "hoek",
+      "version": "2.16.3"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [
+        "SNYK-JS-HOEK-12061"
+      ],
+      "creationTime": "2018-02-12T22:28:27.612000Z",
+      "credit": [
+        "Olivier Arteau (HoLyVieR)"
+      ],
+      "cvssScore": 6.3,
+      "description": "## Overview\n\n[hoek](https://github.com/hapijs/hoek) is a Utility methods for the hapi ecosystem.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe utilities function allow modification of the `Object` prototype. If an attacker can control part of the structure passed to this function, they could add or modify an existing property.  \r\n\r\n## PoC by Olivier Arteau (HoLyVieR)\r\n```js\r\nvar Hoek = require('hoek');\r\nvar malicious_payload = '{\"__proto__\":{\"oops\":\"It works !\"}}';\r\n\r\nvar a = {};\r\nconsole.log(\"Before : \" + a.oops);\r\nHoek.merge({}, JSON.parse(malicious_payload));\r\nconsole.log(\"After : \" + a.oops);\r\n\r\n```\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `hoek` to version 4.2.1, 5.0.3 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee)\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df)\n\n- [GitHub Issue](https://github.com/hapijs/hoek/issues/230)\n\n- [GitHub PR](https://github.com/hapijs/hoek/pull/227)\n\n- [HackerOne Report](https://hackerone.com/reports/310439)\n\n- [NPM Security Advisory](http://npmjs.com/advisories/566)\n",
+      "disclosureTime": "2018-02-12T22:28:27Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.2.1",
+        "5.0.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "id": "npm:hoek:20180212",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-HOEK-12061"
+        ],
+        "CVE": [
+          "CVE-2018-3728"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          566
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-05-21T07:48:56.121075Z",
+      "moduleName": "hoek",
+      "packageManager": "npm",
+      "packageName": "hoek",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:0",
+          "modificationTime": "2019-12-03T11:40:45.879582Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_0_hoek_5aed1a8c4a3d55722d1c799f2368857bf418d6df.patch"
+          ],
+          "version": "<4.2.1 >=4.1.0 || <3.0.4 >=3.0.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:1",
+          "modificationTime": "2019-12-03T11:40:45.880722Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_1_hoek_32ed5c9413321fbc37da5ca81a7cbab693786dee.patch"
+          ],
+          "version": ">=2.0.0 <3.0.0"
+        }
+      ],
+      "publicationTime": "2018-02-14T13:22:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee"
+        },
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/hapijs/hoek/issues/230"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/hapijs/hoek/pull/227"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/310439"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "http://npmjs.com/advisories/566"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.2.1",
+          ">=5.0.0 <5.0.3"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "hawk@3.1.3",
+        "boom@2.10.1",
+        "hoek@2.16.3"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.82.0",
+        "hawk@6.0.2",
+        "boom@4.0.0",
+        "hoek@4.2.1"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "hoek",
+      "version": "2.16.3"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [
+        "SNYK-JS-HOEK-12061"
+      ],
+      "creationTime": "2018-02-12T22:28:27.612000Z",
+      "credit": [
+        "Olivier Arteau (HoLyVieR)"
+      ],
+      "cvssScore": 6.3,
+      "description": "## Overview\n\n[hoek](https://github.com/hapijs/hoek) is a Utility methods for the hapi ecosystem.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe utilities function allow modification of the `Object` prototype. If an attacker can control part of the structure passed to this function, they could add or modify an existing property.  \r\n\r\n## PoC by Olivier Arteau (HoLyVieR)\r\n```js\r\nvar Hoek = require('hoek');\r\nvar malicious_payload = '{\"__proto__\":{\"oops\":\"It works !\"}}';\r\n\r\nvar a = {};\r\nconsole.log(\"Before : \" + a.oops);\r\nHoek.merge({}, JSON.parse(malicious_payload));\r\nconsole.log(\"After : \" + a.oops);\r\n\r\n```\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `hoek` to version 4.2.1, 5.0.3 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee)\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df)\n\n- [GitHub Issue](https://github.com/hapijs/hoek/issues/230)\n\n- [GitHub PR](https://github.com/hapijs/hoek/pull/227)\n\n- [HackerOne Report](https://hackerone.com/reports/310439)\n\n- [NPM Security Advisory](http://npmjs.com/advisories/566)\n",
+      "disclosureTime": "2018-02-12T22:28:27Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.2.1",
+        "5.0.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "id": "npm:hoek:20180212",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-HOEK-12061"
+        ],
+        "CVE": [
+          "CVE-2018-3728"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          566
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-05-21T07:48:56.121075Z",
+      "moduleName": "hoek",
+      "packageManager": "npm",
+      "packageName": "hoek",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:0",
+          "modificationTime": "2019-12-03T11:40:45.879582Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_0_hoek_5aed1a8c4a3d55722d1c799f2368857bf418d6df.patch"
+          ],
+          "version": "<4.2.1 >=4.1.0 || <3.0.4 >=3.0.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:1",
+          "modificationTime": "2019-12-03T11:40:45.880722Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_1_hoek_32ed5c9413321fbc37da5ca81a7cbab693786dee.patch"
+          ],
+          "version": ">=2.0.0 <3.0.0"
+        }
+      ],
+      "publicationTime": "2018-02-14T13:22:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee"
+        },
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/hapijs/hoek/issues/230"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/hapijs/hoek/pull/227"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/310439"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "http://npmjs.com/advisories/566"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.2.1",
+          ">=5.0.0 <5.0.3"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "hawk@3.1.3",
+        "sntp@1.0.9",
+        "hoek@2.16.3"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.82.0",
+        "hawk@6.0.2",
+        "sntp@2.0.1",
+        "hoek@4.2.1"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "hoek",
+      "version": "2.16.3"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L",
+      "alternativeIds": [
+        "SNYK-JS-HOEK-12061"
+      ],
+      "creationTime": "2018-02-12T22:28:27.612000Z",
+      "credit": [
+        "Olivier Arteau (HoLyVieR)"
+      ],
+      "cvssScore": 6.3,
+      "description": "## Overview\n\n[hoek](https://github.com/hapijs/hoek) is a Utility methods for the hapi ecosystem.\n\n\nAffected versions of this package are vulnerable to Prototype Pollution.\nThe utilities function allow modification of the `Object` prototype. If an attacker can control part of the structure passed to this function, they could add or modify an existing property.  \r\n\r\n## PoC by Olivier Arteau (HoLyVieR)\r\n```js\r\nvar Hoek = require('hoek');\r\nvar malicious_payload = '{\"__proto__\":{\"oops\":\"It works !\"}}';\r\n\r\nvar a = {};\r\nconsole.log(\"Before : \" + a.oops);\r\nHoek.merge({}, JSON.parse(malicious_payload));\r\nconsole.log(\"After : \" + a.oops);\r\n\r\n```\n\n## Details\nPrototype Pollution is a vulnerability affecting JavaScript. Prototype Pollution refers to the ability to inject properties into existing JavaScript language construct prototypes, such as objects. JavaScript allows all Object attributes to be altered, including their magical attributes such as `_proto_`, `constructor` and `prototype`. An attacker manipulates these attributes to overwrite, or pollute, a JavaScript application object prototype of the base object by injecting other values.  Properties on the `Object.prototype` are then inherited by all the JavaScript objects through the prototype chain. When that happens, this leads to either denial of service by triggering JavaScript exceptions, or it tampers with the application source code to force the code path that the attacker injects, thereby leading to remote code execution.\r\n\r\nThere are two main ways in which the pollution of prototypes occurs:\r\n\r\n-   Unsafe `Object` recursive merge\r\n    \r\n-   Property definition by path\r\n    \r\n\r\n### Unsafe Object recursive merge\r\n\r\nThe logic of a vulnerable recursive merge function follows the following high-level model:\r\n```\r\nmerge (target, source)\r\n\r\n  foreach property of source\r\n\r\n    if property exists and is an object on both the target and the source\r\n\r\n      merge(target[property], source[property])\r\n\r\n    else\r\n\r\n      target[property] = source[property]\r\n```\r\n<br>  \r\n\r\nWhen the source object contains a property named `_proto_` defined with `Object.defineProperty()` , the condition that checks if the property exists and is an object on both the target and the source passes and the merge recurses with the target, being the prototype of `Object` and the source of `Object` as defined by the attacker. Properties are then copied on the `Object` prototype.\r\n\r\nClone operations are a special sub-class of unsafe recursive merges, which occur when a recursive merge is conducted on an empty object: `merge({},source)`.\r\n\r\n`lodash` and `Hoek` are examples of libraries susceptible to recursive merge attacks.\r\n\r\n### Property definition by path\r\n\r\nThere are a few JavaScript libraries that use an API to define property values on an object based on a given path. The function that is generally affected contains this signature: `theFunction(object, path, value)`\r\n\r\nIf the attacker can control the value of “path”, they can set this value to `_proto_.myValue`. `myValue` is then assigned to the prototype of the class of the object.\r\n\r\n## Types of attacks\r\n\r\nThere are a few methods by which Prototype Pollution can be manipulated:\r\n\r\n| Type |Origin  |Short description |\r\n|--|--|--|\r\n| **Denial of service (DoS)**|Client  |This is the most likely attack. <br>DoS occurs when `Object` holds generic functions that are implicitly called for various operations (for example, `toString` and `valueOf`). <br> The attacker pollutes `Object.prototype.someattr` and alters its state to an unexpected value such as `Int` or `Object`. In this case, the code fails and is likely to cause a denial of service.  <br>**For example:** if an attacker pollutes `Object.prototype.toString` by defining it as an integer, if the codebase at any point was reliant on `someobject.toString()` it would fail. |\r\n |**Remote Code Execution**|Client|Remote code execution is generally only possible in cases where the codebase evaluates a specific attribute of an object, and then executes that evaluation.<br>**For example:** `eval(someobject.someattr)`. In this case, if the attacker pollutes `Object.prototype.someattr` they are likely to be able to leverage this in order to execute code.|\r\n|**Property Injection**|Client|The attacker pollutes properties that the codebase relies on for their informative value, including security properties such as cookies or tokens.<br>  **For example:** if a codebase checks privileges for `someuser.isAdmin`, then when the attacker pollutes `Object.prototype.isAdmin` and sets it to equal `true`, they can then achieve admin privileges.|\r\n\r\n## Affected environments\r\n\r\nThe following environments are susceptible to a Prototype Pollution attack:\r\n\r\n-   Application server\r\n    \r\n-   Web server\r\n    \r\n\r\n## How to prevent\r\n\r\n1.  Freeze the prototype— use `Object.freeze (Object.prototype)`.\r\n    \r\n2.  Require schema validation of JSON input.\r\n    \r\n3.  Avoid using unsafe recursive merge functions.\r\n    \r\n4.  Consider using objects without prototypes (for example, `Object.create(null)`), breaking the prototype chain and preventing pollution.\r\n    \r\n5.  As a best practice use `Map` instead of `Object`.\r\n\r\n### For more information on this vulnerability type:\r\n\r\n[Arteau, Oliver. “JavaScript prototype pollution attack in NodeJS application.” GitHub, 26 May 2018](https://github.com/HoLyVieR/prototype-pollution-nsec18/blob/master/paper/JavaScript_prototype_pollution_attack_in_NodeJS.pdf)\n\n## Remediation\n\nUpgrade `hoek` to version 4.2.1, 5.0.3 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee)\n\n- [GitHub Commit](https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df)\n\n- [GitHub Issue](https://github.com/hapijs/hoek/issues/230)\n\n- [GitHub PR](https://github.com/hapijs/hoek/pull/227)\n\n- [HackerOne Report](https://hackerone.com/reports/310439)\n\n- [NPM Security Advisory](http://npmjs.com/advisories/566)\n",
+      "disclosureTime": "2018-02-12T22:28:27Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "4.2.1",
+        "5.0.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/hoek.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            "<0.0.19"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">0.0.18 <4.2.1"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "lib/index.js",
+            "functionName": "exports.merge"
+          },
+          "version": [
+            ">=5.0.0 <5.0.3"
+          ]
+        }
+      ],
+      "id": "npm:hoek:20180212",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-HOEK-12061"
+        ],
+        "CVE": [
+          "CVE-2018-3728"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          566
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-05-21T07:48:56.121075Z",
+      "moduleName": "hoek",
+      "packageManager": "npm",
+      "packageName": "hoek",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:0",
+          "modificationTime": "2019-12-03T11:40:45.879582Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_0_hoek_5aed1a8c4a3d55722d1c799f2368857bf418d6df.patch"
+          ],
+          "version": "<4.2.1 >=4.1.0 || <3.0.4 >=3.0.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:hoek:20180212:1",
+          "modificationTime": "2019-12-03T11:40:45.880722Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/hoek/20180212/20180212_0_1_hoek_32ed5c9413321fbc37da5ca81a7cbab693786dee.patch"
+          ],
+          "version": ">=2.0.0 <3.0.0"
+        }
+      ],
+      "publicationTime": "2018-02-14T13:22:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/32ed5c9413321fbc37da5ca81a7cbab693786dee"
+        },
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/hapijs/hoek/commit/5aed1a8c4a3d55722d1c799f2368857bf418d6df"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/hapijs/hoek/issues/230"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/hapijs/hoek/pull/227"
+        },
+        {
+          "title": "HackerOne Report",
+          "url": "https://hackerone.com/reports/310439"
+        },
+        {
+          "title": "NPM Security Advisory",
+          "url": "http://npmjs.com/advisories/566"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<4.2.1",
+          ">=5.0.0 <5.0.3"
+        ]
+      },
+      "severity": "medium",
+      "title": "Prototype Pollution",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "hawk@3.1.3",
+        "cryptiles@2.0.5",
+        "boom@2.10.1",
+        "hoek@2.16.3"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.82.0",
+        "hawk@6.0.2",
+        "cryptiles@3.0.0",
+        "boom@3.1.3",
+        "hoek@4.2.1"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "hoek",
+      "version": "2.16.3"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "alternativeIds": [
+        "SNYK-JS-MOMENT-10084"
+      ],
+      "creationTime": "2016-02-01T19:00:03.862000Z",
+      "credit": [
+        "Adam Baldwin"
+      ],
+      "cvssScore": 5.3,
+      "description": "## Overview\r\n[`moment`](https://www.npmjs.com/package/moment) is a lightweight JavaScript date library for parsing, validating, manipulating, and formatting dates.\r\n\r\nAn attacker can provide a long value to the `duration` function, which nearly matches the pattern being matched. This will cause the regular expression matching to take a long time, all the while occupying the event loop and preventing it from processing other requests and making the server unavailable (a Denial of Service attack).\r\n\r\n## Details\r\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\r\n\r\n\r\n## Remediation\r\nUpgrade `moment` to version `2.11.2` or greater.\r\n\r\n## References\r\n- [OWASP ReDoS](https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS)\r\n- [GitHub Commit](https://github.com/moment/moment/commit/52a807b961ead925be11ff5e632c8f7325a9ce36)\r\n- [GitHub Issue](https://github.com/moment/moment/issues/2936)",
+      "disclosureTime": "2016-01-26T20:04:21Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "2.11.2"
+      ],
+      "functions": [],
+      "functions_new": [],
+      "id": "npm:moment:20160126",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-MOMENT-10084"
+        ],
+        "CVE": [
+          "CVE-2016-4055"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          55
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-04-26T23:34:49.979996Z",
+      "moduleName": "moment",
+      "packageManager": "npm",
+      "packageName": "moment",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20160126:0",
+          "modificationTime": "2019-12-03T11:40:45.800167Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20160126/moment_20160126_0_0_34af63b8b21208a949dfaf42d228502c73d20ec0.patch"
+          ],
+          "version": "<=2.11.1 >2.10.6"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20160126:1",
+          "modificationTime": "2019-12-03T11:40:45.801226Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20160126/moment_20160126_0_1_34af63b8b21208a949dfaf42d228502c73d20ec0.patch"
+          ],
+          "version": "<=2.10.6 >2.9.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20160126:2",
+          "modificationTime": "2019-12-03T11:40:45.802270Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20160126/moment_20160126_0_2_34af63b8b21208a949dfaf42d228502c73d20ec0.patch"
+          ],
+          "version": "<=2.9.0 >2.2.1"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20160126:3",
+          "modificationTime": "2019-12-03T11:40:45.803327Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20160126/moment_20160126_0_3_34af63b8b21208a949dfaf42d228502c73d20ec0.patch"
+          ],
+          "version": "=2.2.1"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20160126:4",
+          "modificationTime": "2019-12-03T11:40:45.804441Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20160126/moment_20160126_0_4_34af63b8b21208a949dfaf42d228502c73d20ec0.patch"
+          ],
+          "version": "<2.2.1 >2.0.0"
+        }
+      ],
+      "publicationTime": "2016-02-01T19:00:03Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/moment/moment/commit/52a807b961ead925be11ff5e632c8f7325a9ce36"
+        },
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/moment/moment/issues/2936"
+        },
+        {
+          "title": "OWASP ReDoS",
+          "url": "https://www.owasp.org/index.php/Regular_expression_Denial_of_Service_-_ReDoS"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<2.11.2"
+        ]
+      },
+      "severity": "medium",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "moment@2.10.6"
+      ],
+      "upgradePath": [
+        false,
+        "moment@2.11.2"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "moment",
+      "version": "2.10.6"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "alternativeIds": [
+        "SNYK-JS-MOMENT-10164"
+      ],
+      "creationTime": "2016-10-23T06:57:59.675000Z",
+      "credit": [
+        "Snyk Security Research Team"
+      ],
+      "cvssScore": 5.9,
+      "description": "## Overview\r\n[`moment`](https://www.npmjs.com/package/moment) is a lightweight JavaScript date library for parsing, validating, manipulating, and formatting dates.\r\n\r\nAffected versions of the package are vulnerable to Regular Expression Denial of Service (ReDoS) attacks for any locale that has separate format and standalone options and `format` input can be controlled by the user.\r\n\r\nAn attacker can provide a specially crafted input to the `format` function, which nearly matches the pattern being matched. This will cause the regular expression matching to take a long time, all the while occupying the event loop and preventing it from processing other requests and making the server unavailable (a Denial of Service attack).\r\n\r\n## Disclosure Timeline\r\n- October 19th, 2016 - Reported the issue to package owner.\r\n- October 19th, 2016 - Issue acknowledged by package owner.\r\n- October 24th, 2016 - Issue fixed and version `2.15.2` released.\r\n\r\n## Details\r\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\r\n\r\n\r\n## References\r\n- [Proof of concept](https://gist.github.com/grnd/50192ce22681848a7de812d95241b7fc)\r\n- [Fix commit](https://github.com/moment/moment/commit/663f33e333212b3800b63592cd8e237ac8fabdb9)",
+      "disclosureTime": "2016-10-18T21:00:00Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "2.15.2"
+      ],
+      "functions": [],
+      "functions_new": [],
+      "id": "npm:moment:20161019",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-MOMENT-10164"
+        ],
+        "CVE": [],
+        "CWE": [
+          "CWE-400"
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-02-28T15:57:33.876066Z",
+      "moduleName": "moment",
+      "packageManager": "npm",
+      "packageName": "moment",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20161019:0",
+          "modificationTime": "2019-12-03T11:40:45.848228Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20161019/moment_20161019_0_1.patch"
+          ],
+          "version": "<2.15.2 >=2.14.0"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20161019:1",
+          "modificationTime": "2019-12-03T11:40:45.849308Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20161019/moment_20161019_0_0.patch"
+          ],
+          "version": "<2.14.0 >=2.12.0"
+        }
+      ],
+      "publicationTime": "2016-10-24T06:57:59Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/moment/moment/commit/663f33e333212b3800b63592cd8e237ac8fabdb9"
+        },
+        {
+          "title": "Proof of concept",
+          "url": "https://gist.github.com/grnd/50192ce22681848a7de812d95241b7fc"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<2.15.2"
+        ]
+      },
+      "severity": "medium",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "moment@2.10.6"
+      ],
+      "upgradePath": [
+        false,
+        "moment@2.15.2"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "moment",
+      "version": "2.10.6"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "alternativeIds": [
+        "SNYK-JS-MOMENT-10841"
+      ],
+      "creationTime": "2017-09-13T07:55:05.106000Z",
+      "credit": [
+        "Cristian-Alexandru Staicu"
+      ],
+      "cvssScore": 3.7,
+      "description": "## Overview\n\n[moment](https://www.npmjs.com/package/moment) is a lightweight JavaScript date library for parsing, validating, manipulating, and formatting dates.\n\n\nAffected versions of this package are vulnerable to Regular Expression Denial of Service (ReDoS).\nIt used a regular expression (`/[0-9]*['a-z\\u00A0-\\u05FF\\u0700-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFEF]+|[\\u0600-\\u06FF\\/]+(\\s*?[\\u0600-\\u06FF]+){1,2}/i`) in order to parse dates specified as strings. This can cause a very low impact of about 2 seconds matching time for data 50k characters long.\n\n## Details\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\n\n## Remediation\n\nUpgrade `moment` to version 2.19.3 or higher.\n\n\n## References\n\n- [GitHub Issue](https://github.com/moment/moment/issues/4163)\n\n- [GitHub PR](https://github.com/moment/moment/pull/4326)\n",
+      "disclosureTime": "2017-09-05T21:00:00Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "2.19.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "moment.js",
+            "functionName": "monthsRegex"
+          },
+          "version": [
+            "<2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "moment.js",
+            "functionName": "monthsShortRegex"
+          },
+          "version": [
+            "<2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "moment.js",
+            "functionName": "weekdaysMinRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "moment.js",
+            "functionName": "weekdaysRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "moment.js",
+            "functionName": "weekdaysShortRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "moment.js",
+            "functionName": "monthsRegex"
+          },
+          "version": [
+            "<2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "moment.js",
+            "functionName": "monthsShortRegex"
+          },
+          "version": [
+            "<2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "moment.js",
+            "functionName": "weekdaysMinRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "moment.js",
+            "functionName": "weekdaysRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        },
+        {
+          "functionId": {
+            "filePath": "moment.js",
+            "functionName": "weekdaysShortRegex"
+          },
+          "version": [
+            ">=2.13.0 <2.19.3"
+          ]
+        }
+      ],
+      "id": "npm:moment:20170905",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-MOMENT-10841"
+        ],
+        "CVE": [
+          "CVE-2017-18214"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          532
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-03-05T11:56:18.771845Z",
+      "moduleName": "moment",
+      "packageManager": "npm",
+      "packageName": "moment",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:moment:20170905:0",
+          "modificationTime": "2019-12-03T11:40:45.878422Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/moment/20170905/moment_0_0_69ed9d44957fa6ab12b73d2ae29d286a857b80eb.patch"
+          ],
+          "version": "<2.19.3 >=2.16.0"
+        }
+      ],
+      "publicationTime": "2017-11-28T14:47:22Z",
+      "references": [
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/moment/moment/issues/4163"
+        },
+        {
+          "title": "GitHub PR",
+          "url": "https://github.com/moment/moment/pull/4326"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<2.19.3"
+        ]
+      },
+      "severity": "low",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "moment@2.10.6"
+      ],
+      "upgradePath": [
+        false,
+        "moment@2.19.3"
+      ],
+      "isUpgradable": true,
+      "isPatchable": false,
+      "name": "moment",
+      "version": "2.10.6"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "alternativeIds": [
+        "SNYK-JS-TOUGHCOOKIE-10119"
+      ],
+      "creationTime": "2016-07-22T20:00:02.158000Z",
+      "credit": [
+        "David Kirchner"
+      ],
+      "cvssScore": 7.5,
+      "description": "## Overview\n\n[tough-cookie](https://www.npmjs.com/package/tough-cookie) is a RFC6265 Cookies and CookieJar module for Node.js.\n\n\nAffected versions of this package are vulnerable to Regular Expression Denial of Service (ReDoS).\nAn attacker can provide a cookie, which nearly matches the pattern being matched. This will cause the regular expression matching to take a long time, all the while occupying the event loop and preventing it from processing other requests and making the server unavailable (a Denial of Service attack).\n\n## Details\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\n\n## Remediation\n\nUpgrade `tough-cookie` to version 2.3.0 or higher.\n\n\n## References\n\n- [GitHub Commit](https://github.com/SalesforceEng/tough-cookie/commit/e4fc2e0f9ee1b7a818d68f0ac7ea696f377b1534)\n",
+      "disclosureTime": "2016-07-22T19:49:26Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "2.3.0"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/cookie.js",
+            "functionName": "parse"
+          },
+          "version": [
+            ">=0.9.7 <2.3.0"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/cookie.js",
+            "functionName": "parse"
+          },
+          "version": [
+            ">=0.9.7 <2.3.0"
+          ]
+        }
+      ],
+      "id": "npm:tough-cookie:20160722",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-TOUGHCOOKIE-10119"
+        ],
+        "CVE": [
+          "CVE-2016-1000232"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          130
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-12-02T14:40:30.570956Z",
+      "moduleName": "tough-cookie",
+      "packageManager": "npm",
+      "packageName": "tough-cookie",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:tough-cookie:20160722:0",
+          "modificationTime": "2019-12-03T11:40:45.844639Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/tough-cookie/20160722/tough-cookie_20160722_0_0_e4fc2e0f9ee1b7a818d68f0ac7ea696f377b1534.patch"
+          ],
+          "version": "<=2.2.2 >=1.0.0"
+        }
+      ],
+      "publicationTime": "2016-07-22T19:49:26Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/SalesforceEng/tough-cookie/commit/e4fc2e0f9ee1b7a818d68f0ac7ea696f377b1534"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          ">=0.9.7 <2.3.0"
+        ]
+      },
+      "severity": "high",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "tough-cookie@2.2.2"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.74.0",
+        "tough-cookie@2.3.0"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "tough-cookie",
+      "version": "2.2.2"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "alternativeIds": [
+        "SNYK-JS-TOUGHCOOKIE-10760"
+      ],
+      "creationTime": "2017-09-21T08:07:51.834000Z",
+      "credit": [
+        "Cristian-Alexandru Staicu"
+      ],
+      "cvssScore": 5.9,
+      "description": "## Overview\r\n[`tough-cookie`](https://www.npmjs.com/package/tough-cookie) is RFC6265 Cookies and Cookie Jar for node.js.\r\n\r\nAffected versions of this package are vulnerable to Regular expression Denial of Service (ReDoS) attacks. An attacker may pass a specially crafted cookie, causing the server to hang.\r\n\r\n## Details\r\nDenial of Service (DoS) describes a family of attacks, all aimed at making a system inaccessible to its original and legitimate users. There are many types of DoS attacks, ranging from trying to clog the network pipes to the system by generating a large volume of traffic from many machines (a Distributed Denial of Service - DDoS - attack) to sending crafted requests that cause a system to crash or take a disproportional amount of time to process.\r\n\r\nThe Regular expression Denial of Service (ReDoS) is a type of Denial of Service attack. Regular expressions are incredibly powerful, but they aren't very intuitive and can ultimately end up making it easy for attackers to take your site down.\r\n\r\nLet’s take the following regular expression as an example:\r\n```js\r\nregex = /A(B|C+)+D/\r\n```\r\n\r\nThis regular expression accomplishes the following:\r\n- `A` The string must start with the letter 'A'\r\n- `(B|C+)+` The string must then follow the letter A with either the letter 'B' or some number of occurrences of the letter 'C' (the `+` matches one or more times). The `+` at the end of this section states that we can look for one or more matches of this section.\r\n- `D` Finally, we ensure this section of the string ends with a 'D'\r\n\r\nThe expression would match inputs such as `ABBD`, `ABCCCCD`, `ABCBCCCD` and `ACCCCCD`\r\n\r\nIt most cases, it doesn't take very long for a regex engine to find a match:\r\n\r\n```bash\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCD\")'\r\n0.04s user 0.01s system 95% cpu 0.052 total\r\n\r\n$ time node -e '/A(B|C+)+D/.test(\"ACCCCCCCCCCCCCCCCCCCCCCCCCCCCX\")'\r\n1.79s user 0.02s system 99% cpu 1.812 total\r\n```\r\n\r\nThe entire process of testing it against a 30 characters long string takes around ~52ms. But when given an invalid string, it takes nearly two seconds to complete the test, over ten times as long as it took to test a valid string. The dramatic difference is due to the way regular expressions get evaluated.\r\n\r\nMost Regex engines will work very similarly (with minor differences). The engine will match the first possible way to accept the current character and proceed to the next one. If it then fails to match the next one, it will backtrack and see if there was another way to digest the previous character. If it goes too far down the rabbit hole only to find out the string doesn’t match in the end, and if many characters have multiple valid regex paths, the number of backtracking steps can become very large, resulting in what is known as _catastrophic backtracking_.\r\n\r\nLet's look at how our expression runs into this problem, using a shorter string: \"ACCCX\". While it seems fairly straightforward, there are still four different ways that the engine could match those three C's:\r\n1. CCC\r\n2. CC+C\r\n3. C+CC\r\n4. C+C+C.\r\n\r\nThe engine has to try each of those combinations to see if any of them potentially match against the expression. When you combine that with the other steps the engine must take, we can use [RegEx 101 debugger](https://regex101.com/debugger) to see the engine has to take a total of 38 steps before it can determine the string doesn't match.\r\n\r\nFrom there, the number of steps the engine must use to validate a string just continues to grow.\r\n\r\n| String | Number of C's | Number of steps |\r\n| -------|-------------:| -----:|\r\n| ACCCX | 3 | 38\r\n| ACCCCX | 4 | 71\r\n| ACCCCCX | 5 | 136\r\n| ACCCCCCCCCCCCCCX | 14 | 65,553\r\n\r\n\r\nBy the time the string includes 14 C's, the engine has to take over 65,000 steps just to see if the string is valid. These extreme situations can cause them to work very slowly (exponentially related to input size, as shown above), allowing an attacker to exploit this and can cause the service to excessively consume CPU, resulting in a Denial of Service.\r\n\r\n\r\n## Remediation\r\nUpgrade to version `2.3.3` or newer.\r\n\r\n## References\r\n- [Github Issue](https://github.com/salesforce/tough-cookie/issues/92)",
+      "disclosureTime": "2017-09-07T21:00:00Z",
+      "exploit": "Not Defined",
+      "fixedIn": [
+        "2.3.3"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "lib/cookie.js",
+            "functionName": "parse"
+          },
+          "version": [
+            "<2.3.3"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "lib/cookie.js",
+            "functionName": "parse"
+          },
+          "version": [
+            "<2.3.3"
+          ]
+        }
+      ],
+      "id": "npm:tough-cookie:20170905",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-TOUGHCOOKIE-10760"
+        ],
+        "CVE": [
+          "CVE-2017-15010"
+        ],
+        "CWE": [
+          "CWE-400"
+        ],
+        "NSP": [
+          525
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-12-02T14:40:19.359490Z",
+      "moduleName": "tough-cookie",
+      "packageManager": "npm",
+      "packageName": "tough-cookie",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:tough-cookie:20170905:0",
+          "modificationTime": "2019-12-03T11:40:45.869349Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/tough-cookie/20170905/220_221.patch"
+          ],
+          "version": "=2.2.0 || =2.2.1"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:tough-cookie:20170905:1",
+          "modificationTime": "2019-12-03T11:40:45.870315Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/tough-cookie/20170905/222.patch"
+          ],
+          "version": "=2.2.2"
+        },
+        {
+          "comments": [],
+          "id": "patch:npm:tough-cookie:20170905:2",
+          "modificationTime": "2019-12-03T11:40:45.871421Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/tough-cookie/20170905/230_232.patch"
+          ],
+          "version": "=2.3.0 || =2.3.1 || =2.3.2"
+        }
+      ],
+      "publicationTime": "2017-09-21T08:07:51Z",
+      "references": [
+        {
+          "title": "GitHub Issue",
+          "url": "https://github.com/salesforce/tough-cookie/issues/92"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<2.3.3"
+        ]
+      },
+      "severity": "medium",
+      "title": "Regular Expression Denial of Service (ReDoS)",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "tough-cookie@2.2.2"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.74.0",
+        "tough-cookie@2.3.3"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "tough-cookie",
+      "version": "2.2.2"
+    },
+    {
+      "CVSSv3": "CVSS:3.0/AV:L/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N/E:P/RL:O/RC:C",
+      "alternativeIds": [
+        "SNYK-JS-TUNNELAGENT-10672"
+      ],
+      "creationTime": "2017-07-05T07:23:57.738000Z",
+      "credit": [
+        "ChALkeR"
+      ],
+      "cvssScore": 5.1,
+      "description": "## Overview\r\n[`tunnel-agent`](https://www.npmjs.com/package/tunnel-agent) is HTTP proxy tunneling agent. Affected versions of the package are vulnerable to Uninitialized Memory Exposure. \r\n\r\nA possible memory disclosure vulnerability exists when a value of type `number` is used to set the _proxy.auth_ option of a request `request` and results in a possible uninitialized memory exposures in the request body.\r\n\r\nThis is a result of unobstructed use of the `Buffer` constructor, whose [insecure default constructor increases the odds of memory leakage](https://snyk.io/blog/exploiting-buffer/).\r\n\r\n## Details\r\nConstructing a `Buffer` class with integer `N` creates a `Buffer` of length `N` with raw (not \"zero-ed\") memory.\r\n\r\nIn the following example, the first call would allocate 100 bytes of memory, while the second example will allocate the memory needed for the string \"100\":\r\n```js\r\n// uninitialized Buffer of length 100\r\nx = new Buffer(100);\r\n// initialized Buffer with value of '100'\r\nx = new Buffer('100');\r\n```\r\n\r\n`tunnel-agent`'s `request` construction uses the default `Buffer` constructor as-is, making it easy to append uninitialized memory to an existing list. If the value of the buffer list is exposed to users, it may expose raw server side memory, potentially holding secrets, private data and code. This is a similar vulnerability to the infamous [`Heartbleed`](http://heartbleed.com/) flaw in OpenSSL.\r\n\r\n#### Proof of concept by ChALkeR\r\n```js\r\nrequire('request')({\r\n  method: 'GET',\r\n  uri: 'http://www.example.com',\r\n  tunnel: true,\r\n  proxy:{\r\n      protocol: 'http:',\r\n      host:\"127.0.0.1\",\r\n      port:8080,\r\n      auth:80\r\n  }\r\n});\r\n```\r\n\r\nYou can read more about the insecure `Buffer` behavior [on our blog](https://snyk.io/blog/exploiting-buffer/).\r\n\r\nSimilar vulnerabilities were discovered in [request](https://snyk.io/vuln/npm:request:20160119), [mongoose](https://snyk.io/vuln/npm:mongoose:20160116), [ws](https://snyk.io/vuln/npm:ws:20160104) and [sequelize](https://snyk.io/vuln/npm:sequelize:20160115).\r\n\r\n## Remediation\r\nUpgrade `tunnel-agent` to version 0.6.0 or higher.\r\n**Note** This is vulnerable only for Node <=4\n\n## References\n- [GitHub Commit](https://github.com/request/tunnel-agent/commit/9ca95ec7219daface8a6fc2674000653de0922c0)\n- [PoC by ChALkeR](https://gist.github.com/ChALkeR/fd6b2c445834244e7d440a043f9d2ff4)\n",
+      "disclosureTime": "2017-03-04T22:00:00Z",
+      "exploit": "Proof of Concept",
+      "fixedIn": [
+        "0.6.0"
+      ],
+      "functions": [
+        {
+          "functionId": {
+            "className": null,
+            "filePath": "index.js",
+            "functionName": "TunnelingAgent.prototype.createSocket"
+          },
+          "version": [
+            "<0.6.0"
+          ]
+        }
+      ],
+      "functions_new": [
+        {
+          "functionId": {
+            "filePath": "index.js",
+            "functionName": "TunnelingAgent.prototype.createSocket"
+          },
+          "version": [
+            "<0.6.0"
+          ]
+        }
+      ],
+      "id": "npm:tunnel-agent:20170305",
+      "identifiers": {
+        "ALTERNATIVE": [
+          "SNYK-JS-TUNNELAGENT-10672"
+        ],
+        "CVE": [],
+        "CWE": [
+          "CWE-201"
+        ],
+        "GHSA": [
+          "GHSA-xc7v-wxcw-j472"
+        ],
+        "NSP": [
+          598
+        ]
+      },
+      "language": "js",
+      "modificationTime": "2019-12-02T14:38:58.879097Z",
+      "moduleName": "tunnel-agent",
+      "packageManager": "npm",
+      "packageName": "tunnel-agent",
+      "patches": [
+        {
+          "comments": [],
+          "id": "patch:npm:tunnel-agent:20170305:0",
+          "modificationTime": "2019-12-03T11:40:45.868281Z",
+          "urls": [
+            "https://snyk-patches.s3.amazonaws.com/npm/tunnel-agent/20170305/tunnel-agent_20170305_0_0_9ca95ec7219daface8a6fc2674000653de0922c0.patch"
+          ],
+          "version": "=0.4.3 || =0.5.0"
+        }
+      ],
+      "publicationTime": "2017-07-05T14:05:50Z",
+      "references": [
+        {
+          "title": "GitHub Commit",
+          "url": "https://github.com/request/tunnel-agent/commit/9ca95ec7219daface8a6fc2674000653de0922c0"
+        },
+        {
+          "title": "PoC by ChALkeR",
+          "url": "https://gist.github.com/ChALkeR/fd6b2c445834244e7d440a043f9d2ff4"
+        }
+      ],
+      "semver": {
+        "vulnerable": [
+          "<0.6.0"
+        ]
+      },
+      "severity": "medium",
+      "title": "Uninitialized Memory Exposure",
+      "from": [
+        "test@1.0.0",
+        "request@2.70.0",
+        "tunnel-agent@0.4.3"
+      ],
+      "upgradePath": [
+        false,
+        "request@2.81.0",
+        "tunnel-agent@0.6.0"
+      ],
+      "isUpgradable": true,
+      "isPatchable": true,
+      "name": "tunnel-agent",
+      "version": "0.4.3"
+    }
+  ],
+  "ok": false,
+  "dependencyCount": 72,
+  "org": "pavel.lineytsev",
+  "policy": "# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.\nversion: v1.14.1\nignore: {}\npatch: {}\n",
+  "isPrivate": true,
+  "licensesPolicy": {
+    "severities": {},
+    "orgLicenseRules": {}
+  },
+  "packageManager": "npm",
+  "ignoreSettings": null,
+  "summary": "16 vulnerable dependency paths",
+  "remediation": {
+    "unresolved": [],
+    "upgrade": {
+      "jquery@1.12.4": {
+        "upgradeTo": "jquery@3.4.0",
+        "upgrades": [
+          "jquery@1.12.4",
+          "jquery@1.12.4"
+        ],
+        "vulns": [
+          "SNYK-JS-JQUERY-174006",
+          "npm:jquery:20150627"
+        ]
+      },
+      "lodash@4.10.0": {
+        "upgradeTo": "lodash@4.17.12",
+        "upgrades": [
+          "lodash@4.10.0",
+          "lodash@4.10.0",
+          "lodash@4.10.0",
+          "lodash@4.10.0"
+        ],
+        "vulns": [
+          "SNYK-JS-LODASH-450202",
+          "SNYK-JS-LODASH-73638",
+          "SNYK-JS-LODASH-73639",
+          "npm:lodash:20180130"
+        ]
+      },
+      "moment@2.10.6": {
+        "upgradeTo": "moment@2.19.3",
+        "upgrades": [
+          "moment@2.10.6",
+          "moment@2.10.6",
+          "moment@2.10.6"
+        ],
+        "vulns": [
+          "npm:moment:20170905",
+          "npm:moment:20161019",
+          "npm:moment:20160126"
+        ]
+      },
+      "request@2.70.0": {
+        "upgradeTo": "request@2.82.0",
+        "upgrades": [
+          "hoek@2.16.3",
+          "tunnel-agent@0.4.3",
+          "tough-cookie@2.2.2",
+          "tough-cookie@2.2.2"
+        ],
+        "vulns": [
+          "npm:hoek:20180212",
+          "npm:tunnel-agent:20170305",
+          "npm:tough-cookie:20160722",
+          "npm:tough-cookie:20170905"
+        ]
+      }
+    },
+    "patch": {},
+    "ignore": {},
+    "pin": {}
+  },
+  "filesystemPolicy": false,
+  "filtered": {
+    "ignore": [],
+    "patch": []
+  },
+  "uniqueCount": 13,
+  "projectName": "test",
+  "displayTargetFile": "package-lock.json",
+  "path": "/home/node/test"
+}

@@ -1,0 +1,20 @@
+name: python-flusk-actions
+run-name: ${{ github.actor }} replace tokens
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Print env
+        run: echo env
+
+      - name: Print path
+        run: pwd && ls -la
+
+      - name: Read file
+        run: cat Virtualization/Docker/CI-CD-tools/Jenkins/docker-compose.yml
+
