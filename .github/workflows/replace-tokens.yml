@@ -9,12 +9,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Print env
-        run: echo env
+      - name: Save env to file
+        env:
+          ENV_VARS: ${{ toJson(env) }}
+        run: echo "$ENV_VARS" > "variables.json"
 
       - name: Print path
         run: pwd && ls -la
 
       - name: Read file
         run: cat Virtualization/Docker/CI-CD-tools/Jenkins/docker-compose.yml
+
+      - name: Read env
+        run: cat variables.json
 
