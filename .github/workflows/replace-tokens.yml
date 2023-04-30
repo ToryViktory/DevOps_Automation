@@ -11,8 +11,8 @@ jobs:
 
       - name: Save env to file
         env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT" > "variables.json"
+          VARS: ${{ toJSON(vars) }}
+        run: echo "$VARS" > "variables.json"
 
       - name: Print path
         run: pwd && ls -la
