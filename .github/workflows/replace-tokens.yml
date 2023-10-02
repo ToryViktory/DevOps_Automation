@@ -1,7 +1,7 @@
 name: replace-tokens
 run-name: ${{ github.actor }} replace tokens
 
-on: push
+on: workflow_call
 env:
   JENKINS_LOCAL_HOME: ./jenkins_compose
   JENKINS_UID: 1000
