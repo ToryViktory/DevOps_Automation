@@ -12,12 +12,12 @@ Add all secrets to .env
 gh secret set -f .env 
 
 
-az ad app federated-credential create --id f81a846d-d231-48ef-ad13-9ff3e6bc2144 --parameters credential.json
+az ad app federated-credential create --id f81a846d-d231-48ef-ad13-9ff3e6bc2144 --parameters credentials.json
 ("credential.json" contains the following content)
 {
     "name": "terraform-cluster-vk",
     "issuer": "https://token.actions.githubusercontent.com",
-    "subject": "repo:ToryViktory/DevOps_Automation:environment:dev",
+    "subject": "repo:ToryViktory/DevOps_Automation:ref:refs/heads/main",
     "description": "Testing",
     "audiences": [
         "api://AzureADTokenExchange"
