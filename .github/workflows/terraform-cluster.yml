@@ -137,4 +137,3 @@ jobs:
     # Terraform Apply
     - name: Terraform Apply
       run: terraform apply -auto-approve tfplan
-      working-directory: ./IAC/Terraform/Azure/aks_cluster
