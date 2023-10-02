@@ -3,3 +3,9 @@ jenkins_agent
 jenkins_agent.pub
 .env
 nginx.conf
+registry.terraform.io
+*.tfplan
+*.tfstate*
+.terraform.lock.hcl
+.terraform
+credentials.json
