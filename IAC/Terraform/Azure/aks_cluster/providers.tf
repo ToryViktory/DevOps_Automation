@@ -23,7 +23,8 @@ terraform {
     use_oidc             = true
   }
 }
-
+provider "azapi" {
+}
 provider "azurerm" {
   features {}
 }
