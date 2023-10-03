@@ -1,5 +1,8 @@
 name: Terraform Deploy Cluster
-on: [push]
+on:   
+  push:
+    paths:
+      - 'IAC/**'
 
 permissions:
       id-token: write
