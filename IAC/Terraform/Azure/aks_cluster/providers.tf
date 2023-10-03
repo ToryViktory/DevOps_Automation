@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">=1.0"
+  required_version = ">=1.5"
 
   required_providers {
     azapi = {
@@ -16,15 +16,14 @@ terraform {
     }
   }
   backend "azurerm" {
-    resource_group_name  = "rg-vk-tfstate-eastus"
-    storage_account_name = "tfstatevkeastus"
+    resource_group_name  = "rg-vk-tfstate-westeurope"
+    storage_account_name = "tfstatevknonprod"
     container_name       = "tfstate"
     key                  = "terraform.tfstate"
     use_oidc             = true
   }
 }
-provider "azapi" {
-}
+
 provider "azurerm" {
   features {}
 }
