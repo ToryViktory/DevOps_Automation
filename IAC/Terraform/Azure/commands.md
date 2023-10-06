@@ -23,3 +23,10 @@ az ad app federated-credential create --id f81a846d-d231-48ef-ad13-9ff3e6bc2144 
         "api://AzureADTokenExchange"
     ]
 }
+
+
+VM
+
+$tfstate.values.root_module.resources[1].values.output | Out-File -Path "\.ssh\private_ssh_vm.json"
+$key = Get-Content -Path "\.ssh\private_ssh_vm.json" | ConvertFrom-Json
+$key | Out-File -Path "\.ssh\private_ssh_vm.pem"
